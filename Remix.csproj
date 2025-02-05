@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <IsAotCompatible>True</IsAotCompatible>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <IsAotCompatible>True</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.Byte">
+      <Alias>u8</Alias>
+    </Using>
+    <Using Include="System.Double">
+      <Alias>f64</Alias>
+    </Using>
+    <Using Include="System.Half">
+      <Alias>f16</Alias>
+    </Using>
+    <Using Include="System.Int128">
+      <Alias>i128</Alias>
+    </Using>
+    <Using Include="System.Int16">
+      <Alias>i16</Alias>
+    </Using>
+    <Using Include="System.Int32">
+      <Alias>i32</Alias>
+    </Using>
+    <Using Include="System.Int64">
+      <Alias>i64</Alias>
+    </Using>
+    <Using Include="System.SByte">
+      <Alias>i8</Alias>
+    </Using>
+    <Using Include="System.Single">
+      <Alias>f32</Alias>
+    </Using>
+    <Using Include="System.UInt16">
+      <Alias>u16</Alias>
+    </Using>
+    <Using Include="System.UInt32">
+      <Alias>u32</Alias>
+    </Using>
+    <Using Include="System.UInt64">
+      <Alias>u64</Alias>
+    </Using>
+  </ItemGroup>
+
+</Project>
