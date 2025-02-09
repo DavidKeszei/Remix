@@ -9,19 +9,19 @@ namespace Remix.Effect;
 /// <summary>
 /// Represent a channel shifter on an <see cref="Image"/>.
 /// </summary>
-public class RGBShift: Effect {
+public class ChannelShift: Effect {
     private (i32 X, i32 Y) _shiftRed = (0, 0);
     private (i32 X, i32 Y) _shiftGreen = (0, 0);
     private (i32 X, i32 Y) _shiftBlue = (0, 0);
 
     /// <summary>
-    /// Create new <see cref="RGBShift"/> with specific shifting values in all axis.
+    /// Create new <see cref="ChannelShift"/> with specific shifting values in all axis.
     /// </summary>
     /// <param name="red">Shift values on the red channel.</param>
     /// <param name="green">Shift values on the green channel.</param>
     /// <param name="blue">Shift values on the blue channel.</param>
     /// <param name="before">This effect precedes this effect in effect pipeline.</param>
-    public RGBShift((i32 x, i32 y) red, (i32 x, i32 y) green, (i32 x, i32 y) blue) : base(name: "RGB Shift") {
+    public ChannelShift((i32 x, i32 y) red, (i32 x, i32 y) green, (i32 x, i32 y) blue) : base(name: nameof(ChannelShift)) {
         this._shiftRed = red;
         this._shiftGreen = green;
         this._shiftBlue = blue;

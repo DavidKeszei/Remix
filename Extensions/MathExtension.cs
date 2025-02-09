@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -34,6 +35,9 @@ public static class MathExtension {
 
         return _base * e;
     }
+
+    public static bool IsCloseTo(this f32 num, f32 to, f32 threshold)
+        => f32.Abs(to - num) < threshold;
 
     public static f32 EuclidianDistance(this RGBA from, RGBA to)
         => MathF.Sqrt(x: MathF.Pow(from.R - to.R, 2) + MathF.Pow(from.G - to.G, 2) + MathF.Pow(from.B - to.B, 2));

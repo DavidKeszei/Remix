@@ -36,7 +36,7 @@ internal unsafe struct UMem<TType> : IDisposable, IEquatable<UMem<TType>>, IInva
         }
     }
 
-    public UMem(void* source, u64 length) {
+	public UMem(void* source, u64 length) {
         this._ptr = source;
         this._length = length;
     }

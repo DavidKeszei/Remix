@@ -12,7 +12,9 @@ namespace Remix;
 /// Represent unmanaged memory in the 2D scape.
 /// </summary>
 /// <typeparam name="TType">Underlying type of the <see cref="UMem2D{TType}"/>.</typeparam>
-public class UMem2D<TType> : IDisposable, ICopyFrom<UMem2D<TType>>, IInvalid<UMem2D<TType>> {
+public class UMem2D<TType> : IDisposable, ICopyFrom<UMem2D<TType>>, IInvalid<UMem2D<TType>>, 
+							 IEquatable<UMem2D<TType>> {
+
 	private readonly UMem<TType> _buffer = UMem<TType>.Invalid;
 	private (u32 X, u32 Y) _scale = (X: 0, Y: 0);
 
@@ -25,8 +27,7 @@ public class UMem2D<TType> : IDisposable, ICopyFrom<UMem2D<TType>>, IInvalid<UMe
 	/// <param name="y">Position of the reference object in the array in the Y axis.</param>
 	/// <returns>Return a reference from the array as <typeparamref name="TType"/>.</returns>
 	/// <exception cref="IndexOutOfRangeException"/>
-	public ref TType this[u32 x, u32 y]
-	{
+	public ref TType this[u32 x, u32 y] {
 		get {
 			if (x >= _scale.X || y >= _scale.Y)
 				throw new IndexOutOfRangeException();
@@ -104,6 +105,9 @@ public class UMem2D<TType> : IDisposable, ICopyFrom<UMem2D<TType>>, IInvalid<UMe
 		Dispose(disposing: true);
 		GC.SuppressFinalize(this);
 	}
+
+	public bool Equals(UMem2D<TType> other)
+		=> this._disposedValue == other._disposedValue && this._buffer.Equals(other._buffer);
 
 	protected virtual void Dispose(bool disposing) {
 		if (!_disposedValue)

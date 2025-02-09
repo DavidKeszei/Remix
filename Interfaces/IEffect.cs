@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Remix.Effect;
 
 /// <summary>
-/// Provides methods for manipulate an <see cref="Image"/> independently the instance self.
+/// Provides methods for manipulate an <see cref="Image"/> independently the instance it self.
 /// </summary>
 public interface IEffect {
 

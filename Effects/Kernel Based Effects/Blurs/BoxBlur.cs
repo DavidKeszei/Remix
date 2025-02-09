@@ -23,25 +23,24 @@ public class BoxBlur: Effect {
 	/// </summary>
 	public BlurDirection Direction { get => _direction; set => _direction = value; }
 
-	public BoxBlur(u32 range): base(name: nameof(BoxBlur))
-		=> this._range = range;
+	public BoxBlur(u32 range): base(name: nameof(BoxBlur)) => this._range = range;
 
 	/// <summary>
 	/// Apply Box-blur effect on the <paramref name="target"/>.
 	/// </summary>
 	/// <param name="target">Target <see cref="Image"/> of the effect.</param>
 	/// <remarks><b>Remark: </b> If the <see cref="BoxBlur.Range"/> property is <b>even</b> number, then the method add 1 to the range. (Odd kernels is preferred).</remarks>
-	public override async Task Apply(Image target) {
+	public override Task Apply(Image target) {
 		unsafe {
 			/* 1. Create simple kernel. */
 			Task[] workers = new Task[Environment.ProcessorCount];
 
 			if ((_range & 1) == 0) ++_range;
 
-			_range = u32.Clamp(value: _range, min: 1, max: 1024); /* Maximum stack allocation: 4 * 1024 = 4096 byte */
+			_range = u32.Clamp(value: _range, min: 1, max: 255);
 
 			f32* stack = stackalloc f32[(i32)_range];
-			UMem<f32> kernel = new UMem<f32>(stack, _range);
+			UMem<f32> kernel = new UMem<f32>(source: stack, length: _range);
 
 			for (u32 i = 0; i < kernel.Length; ++i)
 				kernel[i] = 1f / _range;
@@ -59,6 +58,8 @@ public class BoxBlur: Effect {
 				CopyToImage(tempImage, target);
 			}
 		}
+
+		return Task.CompletedTask;
 	}
 
 	private void ApplyVerticalBlur(UMem2D<RGBA> buff, Image image, UMem<f32> kernel, Task[] workers) {
@@ -84,7 +85,7 @@ public class BoxBlur: Effect {
 							if (kernelIndex < 0) current = image[(u32)(xCaptureRef + workerCaptureIndex), (u32)i32.Abs(kernelIndex + kernelInHalf)];
 							else if(kernelIndex > image.Scale.Y - 1) {
 
-								u32 mirror = (u32)(image.Scale.Y + (image.Scale.Y - 1 - kernelIndex));
+								u32 mirror = image.Scale.Y - (image.Scale.Y % (image.Scale.Y - 1));
 								current = image[(u32)(xCaptureRef + workerCaptureIndex), mirror];
 							}
 							else {
@@ -134,7 +135,7 @@ public class BoxBlur: Effect {
 							if (kernelIndex < 0) current = image[(u32)i32.Abs(kernelIndex + kernelInHalf), (u32)(yCaptureRef + workerCaptureIndex)];
 							else if(kernelIndex > image.Scale.X - 1) {
 
-								u32 mirror = (u32)(image.Scale.X + (image.Scale.X - 1 - kernelIndex));
+								u32 mirror = image.Scale.X - (image.Scale.X % (image.Scale.X - 1));
 								current = image[mirror, (u32)(yCaptureRef + workerCaptureIndex)];
 							}
 							else {

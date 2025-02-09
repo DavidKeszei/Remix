@@ -21,7 +21,7 @@ public class Bloom: Effect {
 
 	public u32 Range { get => _range; set => _range = value; }
 
-	public Bloom(u32 range, Effect before = null!): base(name: nameof(Bloom)) {
+	public Bloom(u32 range): base(name: nameof(Bloom)) {
 		if (range == 0)
 			throw new ArgumentException(message: $"[{base.Name}] The bloom range must be more than 0.");
 

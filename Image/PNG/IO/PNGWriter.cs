@@ -51,7 +51,7 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
 
     public Task WriteBuffer(PNG from) {
         using UMem<u8> filtered = CreateFilteredBuffer(from);
-        using UMem<u8> zipped = UMem<u8>.Create(allocationLength: (u64)(filtered.Length * 1.5f));
+        using UMem<u8> zipped = UMem<u8>.Create(allocationLength: (u64)(filtered.Length * 1.75f + 6));
 
         i64 written = (i64)zipped.Length;
 

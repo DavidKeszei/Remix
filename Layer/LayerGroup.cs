@@ -54,7 +54,7 @@ public class LayerGroup {
 	/// <param name="image">Target <see cref="Image"/> of the <see cref="Layer"/>.</param>
 	/// <param name="position">Start position of the <see cref="Layer"/>.</param>
 	/// <param name="blendMode">Start blending mode of the <see cref="Layer"/>.</param>
-	public void AddLayer(Image image, (u32 X, u32 Y) position, BlendMode blendMode = BlendMode.NORMAL)
+	public void AddLayer(Image image, (i32 X, i32 Y) position, BlendMode blendMode = BlendMode.NORMAL)
 		=> this._layers.Add(item: new Layer(image, position, blendMode));
 
 	/// <summary>
@@ -78,16 +78,18 @@ public class LayerGroup {
 				for(i32 i = 1; i < _layers.Count; ++i) {
 					layer = _layers[i];
 
-					if (layer.Strength == 0 || (layer.Position.X > x || layer.Position.Y > y))
+					if (layer.Strength == 0 || ((x <= layer.Position.X || x >= layer.Position.X + layer.ReferenceImage.Scale.X) || 
+												(y <= layer.Position.Y || y >= layer.Position.Y + layer.ReferenceImage.Scale.Y)))
 						continue;
 
-					RGBA layerPX = layer.ReferenceImage[x - layer.Position.X, y - layer.Position.Y];
 					f32 pxStrength = 1f - layer.Strength;
+					RGBA layerPX = layer.ReferenceImage[(u32)((i32)x - layer.Position.X), (u32)((i32)y - layer.Position.Y)];
 
 					switch (layer.BlendMode) {
-						case BlendMode.NORMAL:
-							px = (px * pxStrength) + (layerPX * layer.Strength);
-							break;
+						case BlendMode.NORMAL: {
+								px = (px * pxStrength) + (layerPX * layer.Strength);
+								break;
+						}
 						case BlendMode.MULTIPLY: {
 								f32 r = px.R / 255f;
 								f32 g = px.G / 255f;
@@ -128,18 +130,16 @@ public class LayerGroup {
 								u8 r = px.R > layerPX.R ? layerPX.R : px.R;
 								u8 g = px.G > layerPX.G ? layerPX.G : px.G;
 								u8 b = px.B > layerPX.B ? layerPX.B : px.B;
-								u8 a = px.A > layerPX.A ? layerPX.A : px.A;
 
-								px = (px * pxStrength) + (new RGBA(red: r, green: g, blue: b, alpha: a) * layer.Strength);
+								px = (px * pxStrength) + (new RGBA(red: r, green: g, blue: b, alpha: px.A) * layer.Strength);
 								break;	
 						}
 						case BlendMode.LIGHTEN: {
 								u8 r = px.R < layerPX.R ? layerPX.R : px.R;
 								u8 g = px.G < layerPX.G ? layerPX.G : px.G;
 								u8 b = px.B < layerPX.B ? layerPX.B : px.B;
-								u8 a = px.A < layerPX.A ? layerPX.A : px.A;
 
-								px = (px * pxStrength) + (new RGBA(red: r, green: g, blue: b, alpha: a) * layer.Strength);
+								px = (px * pxStrength) + (new RGBA(red: r, green: g, blue: b, alpha: px.A) * layer.Strength);
 								break;	
 						}
 					}

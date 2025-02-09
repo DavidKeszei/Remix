@@ -19,6 +19,11 @@ public class PNG: Image, IFile<PNG> {
     public PNGColorMode ColorMode { get => _colorMode; set => _colorMode = value; }
 
     /// <summary>
+    /// Maximum possible scale of the <see cref="PNG"/> by the library.
+    /// </summary>
+    public static (u32 X, u32 Y) MaximumScale { get => (16535U, 16535U); }
+
+    /// <summary>
     /// Create a <see cref="PNG"/> image with specific scale and color.
     /// </summary>
     /// <param name="x">Scale of the PNG in the X axis.</param>
@@ -35,7 +40,7 @@ public class PNG: Image, IFile<PNG> {
 	/// </summary>
 	/// <param name="source">Source image.</param>
 	/// <exception cref="ArgumentException"/>
-	public PNG(Image source, bool deepCopy = true): base(source, deepCopy) {
+	public PNG(Image source, bool owner = false): base(source, owner) {
 		if (typeof(PNG) == source.GetType())
 			this._colorMode = ((PNG)source)._colorMode;
 	}

@@ -10,7 +10,7 @@ namespace Remix;
 /// <summary>
 /// Represent an <see cref="Image"/> instance in the memory. 
 /// </summary>
-public class Image : IDisposable {
+public class Image: IDisposable {
 	protected UMem2D<RGBA> _buffer = UMem2D<RGBA>.Invalid;
 	protected u8 _bitDepth = 0;
 
@@ -35,7 +35,7 @@ public class Image : IDisposable {
 	public u8 BitDepth { get => _bitDepth; }
 
 	/// <summary>
-	/// Create new <see cref="Image"/> with specific <paramref name="scale"/> and <paramref name="color"/>.
+	/// Create new <see cref="Image"/> with specific scale and background <paramref name="color"/>.
 	/// </summary>
 	/// <param name="x">Size of the <see cref="Image"/> in the X axis.</param>
 	/// <param name="y">Size of the <see cref="Image"/> in the Y axis.</param>
@@ -46,11 +46,11 @@ public class Image : IDisposable {
 	}
 
 	/// <summary>
-	/// Copy a(n) <see cref="Image"/> buffer and bit depth from the <paramref name="source"/>.
+	/// Create an <see cref="Image"/> from the <paramref name="source"/> image.
 	/// </summary>
-	/// <param name="source">Other image as a source.</param>
-	public Image(Image source, bool deepCopy = true) {
-		if (deepCopy) {
+	/// <param name="source">Other image as source of this image.</param>
+	public Image(Image source, bool isOwner = false) {
+		if (!isOwner) {
 			this._buffer = new UMem2D<RGBA>(source.Scale);
 			this._buffer.CopyFrom(from: source._buffer);
 		}
@@ -61,12 +61,30 @@ public class Image : IDisposable {
 		this._bitDepth = source._bitDepth;
 	}
 
-	protected Image(u32 x, u32 y) {
+	/// <summary>
+	/// Create a new <see cref="Image"/> with specific scale.
+	/// </summary>
+	/// <param name="x">Scale in the X axis.</param>
+	/// <param name="y">Scale in the Y axis.</param>
+	public Image(u32 x, u32 y) {
 		this._bitDepth = 8;
 		this._buffer = new UMem2D<RGBA>(scale: (x, y));
 	}
 
 	~Image() => Dispose(disposing: false);
+
+	/// <summary>
+	/// Swap the underlying buffer with a new buffer after initialize the <see cref="Image"/> instance.
+	/// </summary>
+	/// <param name="source">The new buffer, which owned by the current <see cref="Image"/> by now.</param>
+	/// <exception cref="InvalidOperationException"/>
+	public void SwapBuffer(UMem2D<RGBA> source) {
+		if (this._buffer.Equals(other: UMem2D<RGBA>.Invalid))
+			throw new InvalidOperationException(message: "You can't swap the underlying buffer, if the image is not created or loaded in the memory.");
+
+		this._buffer.Dispose();
+		this._buffer = source;
+	}
 
 	public void Dispose() {
 		Dispose(disposing: true);
@@ -74,8 +92,7 @@ public class Image : IDisposable {
 	}
 
 	protected virtual void Dispose(bool disposing) {
-		if (!_disposedValue)
-		{
+		if (!_disposedValue) {
 			if (disposing)
 				_bitDepth = 0;
 
