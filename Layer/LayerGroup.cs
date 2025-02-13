@@ -10,8 +10,8 @@ namespace Remix.Layer;
 /// Represent a group of <see cref="Layer"/>s.
 /// </summary>
 public class LayerGroup {
-	private readonly (u32 X, u32 Y) _scale = (0, 0);
 	private readonly List<Layer> _layers = null!;
+	private readonly (u32 X, u32 Y) _scale = (0, 0);
 
 	/// <summary>
 	/// Scale of the produced <see cref="Image"/> by the layers.
@@ -56,6 +56,8 @@ public class LayerGroup {
 	/// <param name="blendMode">Start blending mode of the <see cref="Layer"/>.</param>
 	public void AddLayer(Image image, (i32 X, i32 Y) position, BlendMode blendMode = BlendMode.NORMAL)
 		=> this._layers.Add(item: new Layer(image, position, blendMode));
+
+	public void RemoveLayer(u32 index) => _layers.RemoveAt(index: (i32)index);
 
 	/// <summary>
 	/// Create a new <see cref="Image"/> from the <see cref="Layer"/>s.

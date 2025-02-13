@@ -8,6 +8,9 @@ namespace Remix;
 
 public static class Transform {
 
+	[ThreadStatic]
+	private static Task[] _workers = new Task[Environment.ProcessorCount];
+
 	/// <summary>
 	/// Flip the current <paramref name="image"/> in an axis.
 	/// </summary>
@@ -51,7 +54,7 @@ public static class Transform {
 			return;
 
 		using UMem2D<RGBA> horizontal = new UMem2D<RGBA>((x, source.Scale.Y), 0x0);
-		UMem2D<RGBA> vertical = new UMem2D<RGBA>((x, y), 0x0);
+		UMem2D<RGBA> vertical = new UMem2D<RGBA>((x, y), 0x0); /* This buffer may owned by the resized image. */
 
 		if (x >= source.Scale.X) {
 			switch(method) {
@@ -113,26 +116,39 @@ public static class Transform {
 						old.Scale.X <= 2 ? destination.Scale.X - 1 : 
 										   (destination.Scale.X - 1) / (f32)old.Scale.X;
 
-		for(u32 y = 0; y < destination.Scale.Y; ++y) {
-			f32 barrier = ratio;
-			f32 barrierBefore = .0f;
+		u32 workerCount = (u32)_workers.Length;
 
-			RGBA from = old[0, y];
-			RGBA to = old.Scale.X == 1 ? old[0, y] : old[1, y];
+		for(u32 y = 0; y < destination.Scale.Y; y += workerCount) {
+			u32 yRef = y;
+			workerCount = destination.Scale.Y - y > _workers.Length ? (u32)_workers.Length : destination.Scale.Y - y;
 
-			for (u32 x = 0; x < destination.Scale.X; ++x) {
+			for(i32 w = 0; w < workerCount; ++w) {
+				u32 wRef = (u32)w;
 
-				if(x >= barrier && (barrier / ratio) < old.Scale.X - 1) {
-					barrierBefore = barrier;
-					barrier += ratio;
+				_workers[w] = Task.Run(() => {
+					f32 barrier = ratio;
+					f32 barrierBefore = .0f;
 
-					from = to;
-					to = old[(u32)(barrier / ratio), y];
-				}
+					RGBA from = old[0, yRef + wRef];
+					RGBA to = old.Scale.X == 1 ? old[0, yRef + wRef] : old[1, yRef + wRef];
 
-				f32 current = (x - barrierBefore) / ratio;
-				destination[x, y] = RGBA.Lerp(from, to, current);
+					for (u32 x = 0; x < destination.Scale.X; ++x) {
+						if (x >= barrier && (barrier / ratio) < old.Scale.X - 1) {
+
+							barrierBefore = barrier;
+							barrier += ratio;
+
+							from = to;
+							to = old[(u32)(barrier / ratio), yRef + wRef];
+						}
+
+						f32 current = (x - barrierBefore) / ratio;
+						destination[x, yRef + wRef] = RGBA.Lerp(from, to, current);
+					}
+				});
 			}
+
+			Task.WaitAll(tasks: _workers);
 		}
 	}
 
@@ -141,26 +157,39 @@ public static class Transform {
 						old.Scale.Y <= 2 ? destination.Scale.Y - 1 :
 										   (destination.Scale.Y - 1) / (f32)old.Scale.Y;
 
-		for(u32 x = 0; x < destination.Scale.X; ++x) {
-			f32 barrier = ratio;
-			f32 barrierBefore = .0f;
+		u32 workerCount = (u32)_workers.Length;
 
-			RGBA from = old[x, 0];
-			RGBA to = old.Scale.Y == 1 ? old[x, 0] : old[x, 1];
+		for(u32 x = 0; x < destination.Scale.X; x += workerCount) {
+			u32 xRef = x;
+			workerCount = destination.Scale.X - x > _workers.Length ? (u32)_workers.Length : destination.Scale.X - x;
 
-			for (u32 y = 0; y < destination.Scale.Y; ++y) {
-				if(y >= barrier && (barrier / ratio) < old.Scale.Y - 1) {
+			for(i32 w = 0; w < workerCount; ++w) {
+				u32 wRef = (u32)w;
 
-					barrierBefore = barrier;
-					barrier += ratio;
+				_workers[w] = Task.Run(action: () => {
+					f32 barrier = ratio;
+					f32 barrierBefore = .0f;
 
-					from = to;
-					to = old[x, (u32)(barrier / ratio)];
-				}
+					RGBA from = old[xRef + wRef, 0];
+					RGBA to = old.Scale.Y == 1 ? old[xRef + wRef, 0] : old[xRef + wRef, 1];
 
-				f32 current = (y - barrierBefore) / ratio;
-				destination[x, y] = RGBA.Lerp(from, to, current);
+					for (u32 y = 0; y < destination.Scale.Y; ++y) {
+						if (y >= barrier && (barrier / ratio) < old.Scale.Y - 1) {
+
+							barrierBefore = barrier;
+							barrier += ratio;
+
+							from = to;
+							to = old[xRef + wRef, (u32)(barrier / ratio)];
+						}
+
+						f32 current = (y - barrierBefore) / ratio;
+						destination[xRef + wRef, y] = RGBA.Lerp(from, to, current);
+					}
+				});
 			}
+
+			Task.WaitAll(tasks: _workers);
 		}
 	}
 

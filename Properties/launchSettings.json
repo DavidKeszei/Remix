@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Remix": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

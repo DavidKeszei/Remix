@@ -51,11 +51,13 @@ public class Image: IDisposable {
 	/// <param name="source">Other image as source of this image.</param>
 	public Image(Image source, bool isOwner = false) {
 		if (!isOwner) {
-			this._buffer = new UMem2D<RGBA>(source.Scale);
+			this._buffer = new UMem2D<RGBA>(scale: source.Scale);
 			this._buffer.CopyFrom(from: source._buffer);
 		}
 		else {
+			/* Grab the 'source' buffer & give that to the current image. */
 			this._buffer = source._buffer;
+			source._buffer = UMem2D<RGBA>.Invalid;
 		}
 
 		this._bitDepth = source._bitDepth;

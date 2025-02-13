@@ -73,6 +73,12 @@ internal unsafe struct UMem<TType> : IDisposable, IEquatable<UMem<TType>>, IInva
         return mem;
     }
 
+    public void Clear(TType fill = default!) {
+        for(u64 i = 0; i < _length; ++i) {
+            *((TType*)_ptr + i) = fill;
+        }
+    }
+
     /// <summary>
     /// Return the current <see cref="UMem{TType}"/> instance as a <see cref="UnmanagedMemoryStream"/>.
     /// </summary>
