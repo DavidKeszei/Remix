@@ -39,6 +39,7 @@ public class PNG: Image, IFile<PNG> {
 	/// Copy a(n) <see cref="Image"/> to this <see cref="PNG"/> with all generic (and specific) properties.
 	/// </summary>
 	/// <param name="source">Source image.</param>
+    /// <param name="owner">Indicates the current <see cref="PNG"/> image is owning the <paramref name="source"/> buffer.</param>
 	/// <exception cref="ArgumentException"/>
 	public PNG(Image source, bool owner = false): base(source, owner) {
 		if (typeof(PNG) == source.GetType())
@@ -66,7 +67,7 @@ public class PNG: Image, IFile<PNG> {
     }
     
     /// <summary>
-    /// Save the current <see cref="PNG"/> image to the storage with default properties.
+    /// Save the current <see cref="PNG"/> image to the storage with "default setting(s)".
     /// </summary>
     /// <param name="path">Path of the output <see cref="PNG"/> image.</param>
     public async Task Save(string path) {
@@ -98,7 +99,7 @@ public class PNG: Image, IFile<PNG> {
 
             await writer.WriteBuffer(from: this);
 
-            /* Write not required chunks into the file. (Example: textual data [iTXt Chunk])*/
+            /* Write not required chunks into the file. (Example: textual data [iTXt Chunk]) */
             builder.Build(writer);
         }
     }

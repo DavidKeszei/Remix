@@ -26,7 +26,7 @@ public class GrayScale: Effect {
     public GrayScale(GrayScaleMethod method): base(name: "Grayscale")
         => this._method = method;
 
-    public override async Task Apply(Image target) {
+    public override Task Apply(Image target) {
         float _pxStrength = 1 - _strength;
 
         for(u32 y = 0; y < target.Scale.Y; ++y) {
@@ -58,6 +58,8 @@ public class GrayScale: Effect {
                 px.B = (u8)((grayColor * _strength) + (px.B * _pxStrength));
             }
         }
+
+        return Task.CompletedTask;
     }
 }
 

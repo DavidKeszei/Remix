@@ -16,7 +16,7 @@ public class Shift: Effect {
 	private u32 _lineHeight = 1;
 	private f32 _randomSelectedPercent = 1f;
 
-	private ShiftDirection _direction = ShiftDirection.Vertical;
+	private ShiftDirection _direction = ShiftDirection.VERTICAL;
 
 	/// <summary>
 	/// Maximum value of the shifting backward or forward.
@@ -39,6 +39,9 @@ public class Shift: Effect {
 	/// </summary>
 	public u32 LineHeight { get => _lineHeight; set => _lineHeight = value; }
 
+	/// <summary>
+	/// Indicates how many line shifted in a direction in normalized percent.
+	/// </summary>
 	public f32 Threshold { get => _randomSelectedPercent; set => _randomSelectedPercent = f32.Clamp(value, .0f, 1f); }
 
 	public Shift(u32 maxShift, ShiftDirection direction, i32 seed = -1): base(name: nameof(Shift)) {
@@ -52,7 +55,7 @@ public class Shift: Effect {
 		Random rnd = new Random(Seed: _seed == -1 ? (i32)(DateTime.Now.Ticks % i32.MaxValue) : _seed);
 		using Image img = new Image(source: target, isOwner: false);
 
-		if (_direction == ShiftDirection.Vertical) {
+		if (_direction == ShiftDirection.VERTICAL) {
 			ShiftVertical(generator: rnd, target, img);
 		}
 		else {
@@ -65,6 +68,8 @@ public class Shift: Effect {
 	private void ShiftHorizontal(Random generator, Image target, Image temp) {
 		i32 currentShift = 0;
 		bool isCurrentlySelected = true;
+
+		f32 pxStrength = 1f - _strength;
 
 		for (u32 y = 0; y < target.Scale.Y; y++) {
 			if (y % _lineHeight == 0) {
@@ -79,13 +84,13 @@ public class Shift: Effect {
 				}
 
 				if (x + currentShift < 0) {
-					target[(u32)(target.Scale.X + ((i32)x + currentShift)), y] = temp[x, y];
+					target[(u32)(target.Scale.X + ((i32)x + currentShift)), y] = (temp[x, y] * _strength) + (target[(u32)(target.Scale.X + ((i32)x + currentShift)), y] * pxStrength);
 				}
 				else if(x + currentShift >= target.Scale.X) {
-					target[(u32)((x + currentShift) % target.Scale.X), y] = temp[x, y];
+					target[(u32)((x + currentShift) % target.Scale.X), y] = (temp[x, y] * _strength) + (target[(u32)((x + currentShift) % target.Scale.X), y] * pxStrength);
 				}
 				else {
-					target[(u32)(x + currentShift), y] = temp[x, y];
+					target[(u32)(x + currentShift), y] = (temp[x, y] * _strength) + (target[(u32)(x + currentShift), y] * pxStrength);
 				}
 			}
 		}
@@ -122,6 +127,6 @@ public class Shift: Effect {
 }
 
 public enum ShiftDirection: u8 {
-	Vertical,
-	Horizontal
+	VERTICAL,
+	HORIZONTAL
 }

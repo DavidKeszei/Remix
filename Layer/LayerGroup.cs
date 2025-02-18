@@ -40,7 +40,7 @@ public class LayerGroup {
 	}
 
 	/// <summary>
-	/// Create new <see cref="LayerGroup"/> with specific <paramref name="canvasScale"/>.
+	/// Create new <see cref="LayerGroup"/> with specific <paramref name="canvasScale"/>. 
 	/// </summary>
 	/// <param name="canvasScale">Scale of the produced <see cref="Image"/> by the <see cref="LayerGroup"/>.</param>
 	public LayerGroup((u32 X, u32 Y) canvasScale) {
@@ -56,22 +56,32 @@ public class LayerGroup {
 	/// <param name="blendMode">Start blending mode of the <see cref="Layer"/>.</param>
 	public void AddLayer(Image image, (i32 X, i32 Y) position, BlendMode blendMode = BlendMode.NORMAL)
 		=> this._layers.Add(item: new Layer(image, position, blendMode));
-
+	
+	/// <summary>
+	/// Remove the specific layer at the <paramref name="index"/>.
+	/// </summary>
+	/// <param name="index">Index of the <see cref="Layer"/>.</param>
 	public void RemoveLayer(u32 index) => _layers.RemoveAt(index: (i32)index);
 
 	/// <summary>
 	/// Create a new <see cref="Image"/> from the <see cref="Layer"/>s.
 	/// </summary>
 	/// <returns>Return a new <see cref="Image"/> instance.</returns>
-	public Task<Image> CreateImage() {
-		if (_layers.Count == 0) return Task.FromResult<Image>(result: null!);
+	public Task<Image> CreateImage(Action<f32> progress = null!) {		
+		if (_layers.Count == 0) {
+			progress?.Invoke(100f);
+			return Task.FromResult<Image>(result: null!);
+		}
 
 		Image image = new Image(x: _scale.X, y: _scale.Y, color: 0x00000000);
 		Layer layer = null!;
 
 		CopyTo(from: _layers[0].ReferenceImage, to: image);
 
-		if (_layers.Count == 1) return Task.FromResult<Image>(result: image);
+		if (_layers.Count == 1) {
+			progress?.Invoke(100f);
+			return Task.FromResult<Image>(result: image);
+		}
 
 		for(u32 y = 0; y < _scale.Y; ++y) {
 			for(u32 x = 0; x < _scale.X; ++x) {
@@ -149,8 +159,11 @@ public class LayerGroup {
 					image[x, y] = px;
 				}
 			}
+
+			progress?.Invoke(y / (f32)_scale.Y * 100f);
 		}
 
+		progress?.Invoke(100f);
 		return Task.FromResult<Image>(result: image);
 	}
 

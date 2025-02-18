@@ -1,5 +1,8 @@
 ﻿namespace Remix.Helpers;
 
+/// <summary>
+/// Provides filter decode/encode functions for <see cref="PNG"/> objects.
+/// </summary>
 internal class PNGFilter {
     private readonly bool _isDecode = false;
 

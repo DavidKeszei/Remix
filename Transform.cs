@@ -7,9 +7,7 @@ using System.Threading.Tasks;
 namespace Remix;
 
 public static class Transform {
-
-	[ThreadStatic]
-	private static Task[] _workers = new Task[Environment.ProcessorCount];
+	private readonly static Task[] _workers = new Task[Environment.ProcessorCount];
 
 	/// <summary>
 	/// Flip the current <paramref name="image"/> in an axis.
@@ -18,6 +16,7 @@ public static class Transform {
 	/// <param name="direction">Flip direction.</param>
 	public static void Flip(Image image, FlipDirection direction) {
 		if(direction == FlipDirection.VERTICAL) {
+
 			for(u32 x = 0; x < image.Scale.X; ++x) {
 				for(u32 y = 0; y < image.Scale.Y / 2; ++y) {
 

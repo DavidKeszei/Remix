@@ -19,8 +19,16 @@ public class Bloom: Effect {
 	/// </summary>
 	public bool FastMode { get => _fastMode; set => _fastMode = value; }
 
+	/// <summary>
+	/// Range of the bloom kernel.
+	/// </summary>
 	public u32 Range { get => _range; set => _range = value; }
 
+	/// <summary>
+	/// Create <see cref="Bloom"/> effect specific with specific <paramref name="range"/>.
+	/// </summary>
+	/// <param name="range">Range of the bloom.</param>
+	/// <exception cref="ArgumentException"/>
 	public Bloom(u32 range): base(name: nameof(Bloom)) {
 		if (range == 0)
 			throw new ArgumentException(message: $"[{base.Name}] The bloom range must be more than 0.");

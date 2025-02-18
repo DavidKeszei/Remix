@@ -82,7 +82,7 @@ public class Image: IDisposable {
 	/// <exception cref="InvalidOperationException"/>
 	public void SwapBuffer(UMem2D<RGBA> source) {
 		if (this._buffer.Equals(other: UMem2D<RGBA>.Invalid))
-			throw new InvalidOperationException(message: "You can't swap the underlying buffer, if the image is not created or loaded in the memory.");
+			throw new InvalidOperationException(message: "You can't swap the underlying buffer, if the image is not created or loaded into the memory.");
 
 		this._buffer.Dispose();
 		this._buffer = source;

@@ -27,7 +27,7 @@ public class ChannelShift: Effect {
         this._shiftBlue = blue;
     }
 
-    public override async Task Apply(Image target) {
+    public override Task Apply(Image target) {
         UMem2D<RGBA>[] split = SplitChannels(target);
 
         for(u32 y = 0; y < target.Scale.Y; ++y) { 
@@ -50,6 +50,8 @@ public class ChannelShift: Effect {
         /* Free used splits */
         for (u8 i = 0; i < split.Length; ++i)
             split[i].Dispose();
+
+        return Task.CompletedTask;
     }
 
     private UMem2D<RGBA>[] SplitChannels(Image image) {

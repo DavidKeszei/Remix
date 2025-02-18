@@ -92,10 +92,10 @@ public class GaussianBlur: Effect {
                         for(i32 kernelIndex = y - kernelInHalf; kernelIndex <= y + kernelInHalf; ++kernelIndex) {
                             RGBA current = 0x0u;
 
-                            if (kernelIndex < 0) current = image[(u32)(xCaptureRef + workerCaptureIndex), (u32)i32.Abs(kernelIndex + kernelInHalf)];
+                            if (kernelIndex < 0) current = image[(u32)(xCaptureRef + workerCaptureIndex), (u32)(kernelIndex + kernelInHalf)];
                             else if(kernelIndex > image.Scale.Y - 1) {
 
-                                u32 mirror = image.Scale.Y - (image.Scale.Y % (image.Scale.Y - 1));
+                                u32 mirror = (u32)(image.Scale.Y - (kernelIndex % (image.Scale.Y - 1)));
                                 current = image[(u32)(xCaptureRef + workerCaptureIndex), mirror];
                             }
                             else {
@@ -143,10 +143,10 @@ public class GaussianBlur: Effect {
                         for(i32 kernelIndex = x - kernelInHalf; kernelIndex <= x + kernelInHalf; ++kernelIndex) {
                             RGBA current = 0x0u;
 
-                            if (kernelIndex < 0) current = image[(u32)i32.Abs(kernelIndex + kernelInHalf), (u32)(yCaptureRef + workerCaptureIndex)];
+                            if (kernelIndex < 0) current = image[(u32)(kernelIndex + kernelInHalf), (u32)(yCaptureRef + workerCaptureIndex)];
                             else if(kernelIndex > image.Scale.X - 1) {
 
-                                u32 mirror = image.Scale.X - (image.Scale.X % (image.Scale.X - 1));
+                                u32 mirror = (u32)(image.Scale.X - (kernelIndex % (image.Scale.X - 1)));
                                 current = image[mirror, (u32)(yCaptureRef + workerCaptureIndex)];
                             }
                             else {

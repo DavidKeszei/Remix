@@ -5,11 +5,15 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Remix.Effect;
+
+/// <summary>
+/// Represent a color inverse funtion on an <see cref="Image"/>.
+/// </summary>
 public class Inverse: Effect {
 
     public Inverse(): base(name: "Inverse") { }
 
-    public override async Task Apply(Image target) {
+    public override Task Apply(Image target) {
         float pxStrength = 1f - _strength;
 
         for(u32 y = 0; y < target.Scale.Y; ++y) {
@@ -25,5 +29,7 @@ public class Inverse: Effect {
                 target[x, y].B = (u8)((current.B * _strength) + (target[x, y].B * pxStrength));
             }
         }
+
+        return Task.CompletedTask;
     }
 }

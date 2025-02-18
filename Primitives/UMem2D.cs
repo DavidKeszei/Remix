@@ -103,7 +103,7 @@ public class UMem2D<TType> : IDisposable, ICopyFrom<UMem2D<TType>>, IInvalid<UMe
 	}
 
 	public bool Equals(UMem2D<TType> other)
-		=> this._disposedValue == other._disposedValue && this._buffer.Equals(other._buffer);
+		=> other != null && this._disposedValue == other._disposedValue && this._buffer.Equals(other._buffer);
 
 	protected virtual void Dispose(bool disposing) {
 		if (!_disposedValue) {
