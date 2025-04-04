@@ -13,8 +13,7 @@ namespace Remix;
 /// Represent a RGBA pixel in the <see cref="Image"/>.
 /// </summary>
 [StructLayout(layoutKind: LayoutKind.Explicit)]
-public struct RGBA : ICopyFrom<Span<u8>>, ICopyTo<Span<u8>>, 
-					 IMultiplyOperators<RGBA, f32, RGBA> {
+public struct RGBA: ICopyFrom<Span<u8>>, ICopyTo<Span<u8>>, IMultiplyOperators<RGBA, f32, RGBA> {
 
 	[FieldOffset(offset: 3)] private u8 _red = 0x00;
 	[FieldOffset(offset: 2)] private u8 _green = 0x00;
@@ -46,7 +45,25 @@ public struct RGBA : ICopyFrom<Span<u8>>, ICopyTo<Span<u8>>,
 	/// <summary>
 	/// Intensity of the current <see cref="RGBA"/> instance.
 	/// </summary>
-	public readonly float Luminance { get => ((_red * 0.299f) + (_green * 0.587f) + (_blue * 0.114f)) / u8.MaxValue; }
+	public readonly float Luminance { get => ((_red * .299f) + (_green * .587f) + (_blue * .114f)) / u8.MaxValue; }
+
+#region < STATICS >
+
+	public static RGBA Transparent { get => 0u; }
+
+	public static RGBA Black { get => 0x000000ff; }
+
+	public static RGBA White { get => u32.MaxValue; }
+
+	public static RGBA Red { get => 0xff0000ff; }
+
+	public static RGBA Green { get => 0x00ff00ff; }
+
+	public static RGBA Blue { get => 0x0000ffff; }
+
+#endregion
+
+#region < OPERATORS >
 
 	public static RGBA operator*(RGBA px, f32 fValue) {
 		px.R = (u8)f32.Clamp(px._red * fValue, 0, u8.MaxValue);
@@ -71,21 +88,14 @@ public struct RGBA : ICopyFrom<Span<u8>>, ICopyTo<Span<u8>>,
 
 	public static implicit operator RGBA(u32 color) => new RGBA(color: color);
 
+#endregion
+
 	public RGBA(u8 red, u8 green, u8 blue, u8 alpha = 255) {
 		this._red = red;
 		this._green = green;
 		this._blue = blue;
 
 		this._alpha = alpha;
-	}
-
-	public RGBA(ReadOnlySpan<u8> rgba) {
-		this._red = rgba[0];
-		this._green = rgba[1];
-		this._blue = rgba[2];
-
-		if (rgba.Length == 3) this._alpha = 255;
-		else this._alpha = rgba[3];
 	}
 
 	public RGBA(u32 color) => _integer = color;
@@ -127,10 +137,16 @@ public struct RGBA : ICopyFrom<Span<u8>>, ICopyTo<Span<u8>>,
 		switch(from.Length) {
 			case 1:
 				this._red = from[0];
+				this._green = from[0];
+				this._blue = from[0];
+				
+				this._alpha = u8.MaxValue;
 				break;
 
 			case 2:
 				this._red = from[0];
+				this._green = from[0];
+				this._blue = from[0];
 				this._alpha = from[1];
 				break;
 

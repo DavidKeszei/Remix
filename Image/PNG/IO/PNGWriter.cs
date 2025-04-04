@@ -20,6 +20,7 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
     private BinaryWriter _writer = null!;
 
     private PNGHeader _header = null!;
+    private PNGPalette _palette = null!;
 
     public PNGWriter(string path) {
         this._writer = new BinaryWriter(output: new FileStream(path, mode: FileMode.Create, access: FileAccess.Write));
@@ -46,17 +47,22 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
             case PNGHeaderEntry.ColorMode:
                 _header.ColorMode = Unsafe.As<T, PNGColorMode>(ref value);
                 break;
+            default:
+                throw new ArgumentException(message: "The given header entry is not exists in the PNG specs.");
         }
     }
 
     public Task WriteBuffer(PNG from) {
+        if (from.ColorMode == PNGColorMode.INDEXED)
+            ConvertToIndexed(from);
+
         using UMem<u8> filtered = CreateFilteredBuffer(from);
-        using UMem<u8> zipped = UMem<u8>.Create(allocationLength: (u64)(filtered.Length * 1.75f + 6));
+        using UMem<u8> zipped = UMem<u8>.Create(allocationLength: (u64)(filtered.Length * 1.75f + 6), @default: 0);
 
-        i64 written = (i64)zipped.Length;
+        i64 written = 0;
 
-        using(UnmanagedMemoryStream ustream = zipped.AsStream(access: FileAccess.Write))
-        using(ZLibStream zlib = new ZLibStream(stream: ustream, compressionLevel: CompressionLevel.SmallestSize)) {
+        using (UnmanagedMemoryStream ustream = zipped.AsStream(access: FileAccess.Write))
+        using (ZLibStream zlib = new ZLibStream(stream: ustream, compressionLevel: CompressionLevel.SmallestSize)) {
 
             zlib.Write(buffer: filtered.AsSpan(from: 0, length: (i32)filtered.Length));
             zlib.Flush();
@@ -65,9 +71,12 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
             written = ustream.Position + 6;
         }
 
+        if (_header != null) {
+            _header.CopyTo(_writer);
+            _header.Dispose();
 
-        _header.CopyTo(destination: _writer);
-        _header.Dispose();
+            _header = null!;
+        }
 
         using PNGChunk IDAT_Container = new PNGChunk(name: "IDAT", buffer: zipped.AsSpan(0, (i32)written));
         IDAT_Container.CopyTo(destination: _writer);
@@ -79,10 +88,22 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
     /// Write a <see cref="PNGChunk"/> to the <see cref="PNG"/> file.
     /// </summary>
     /// <param name="chunk">Generic or specified <see cref="PNG"/> chunk.</param>
-    public void WriteChunk(PNGChunk chunk) => chunk.CopyTo(destination: _writer);
+    public void WriteChunk(PNGChunk chunk) {
+        if (_header != null!) {
+            _header.CopyTo(destination: _writer);
+            _header.Dispose();
+
+            _header = null!;
+        }
+
+        if (chunk as PNGPalette != null)
+            _palette = (PNGPalette)chunk;
+
+        chunk.CopyTo(destination: _writer);
+    }
 
     public void Dispose() {
-        using PNGChunk IEND_Container = new PNGChunk(name: "IEND", buffer: UMem<byte>.Invalid);
+        using PNGChunk IEND_Container = new PNGChunk(name: "IEND", buffer: UMem<u8>.Invalid);
         IEND_Container.CopyTo(destination: _writer);
 
         _writer.Dispose();
@@ -93,7 +114,13 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
 
         for(i32 y = 0; y < from.Scale.Y; ++y) {
             u64 nextFilterByte = (from.Scale.X * CHANNELS[from.ColorMode] + 1) * (u32)y;
-            buffer[nextFilterByte] = (u8)PNGFilterType.Up;
+
+            /*
+                [TODO]
+                    Check every filter method & select the smallest sized result. (Source: PNGv3 specification [https://www.w3.org/TR/png-3/])
+                        -> Make it as parallel.
+             */
+            buffer[nextFilterByte] = from.ColorMode == PNGColorMode.INDEXED ? (u8)PNGFilterType.None : (u8)PNGFilterType.Up;
 
             for(i32 x = 0; x < from.Scale.X; ++x) {
                 RGBA current = from[(u32)x, (u32)y];
@@ -135,6 +162,9 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
                             _encoder.PaethFilter(ch: CHANNELS[from.ColorMode], upper, before, upper_before, ref current);
                             break;    
                     }
+                    case PNGFilterType.None: {
+                        break;
+                    }
                 }
 
                 u64 offset = (nextFilterByte + 1) + (u32)(x * CHANNELS[from.ColorMode]);
@@ -143,5 +173,25 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
         }
 
         return buffer;
+    }
+
+    private void ConvertToIndexed(PNG from) {
+        for (u32 y = 0; y < from.Scale.Y; ++y) {
+            for (u32 x = 0; x < from.Scale.X; ++x) {
+                f32 distance = from[x, y].EuclidianDistance(to: _palette.Palette[0]);
+                i32 closest = 0;
+
+                for (u16 i = 1; i < _palette.Palette.Count; ++i) {
+                    f32 currentDistance = from[x, y].EuclidianDistance(to: _palette.Palette[i]);
+
+                    if (currentDistance < distance) {
+                        distance = currentDistance;
+                        closest = i;
+                    }
+                }
+
+                from[x, y].R = (u8)closest;
+            }
+        }
     }
 }

@@ -17,6 +17,7 @@ public interface IFile<TImage> where TImage: Image {
     /// </summary>
     /// <param name="path">Path of the image.</param>
     /// <returns>Return a loaded image as <typeparamref name="TImage"/>.</returns>
+    /// <exception cref="FileNotFoundException"/>
     public static abstract Task<TImage> Load(string path);
 
     /// <summary>

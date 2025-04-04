@@ -11,10 +11,12 @@ namespace Remix;
 /// Represent a generic <see cref="PNG"/> chunk.
 /// </summary>
 internal class PNGChunk: ICopyTo<BinaryWriter>, IDisposable {
-    private string _name = string.Empty;
     protected UMem<u8> _buffer = UMem<u8>.Invalid;
+    private string _name = string.Empty;
 
     public string Name { get => _name; }
+
+    public PNGChunk() { }
 
     public PNGChunk(string name, UMem<u8> buffer) {
         this._name = name;
@@ -45,7 +47,7 @@ internal class PNGChunk: ICopyTo<BinaryWriter>, IDisposable {
 
         destination.Write(buffer: st_name);
 
-        if(_buffer.Length > 0)
+        if(!_buffer.Equals(other: UMem<u8>.Invalid))
             destination.Write(buffer: _buffer.AsSpan(from: 0, length: (i32)_buffer.Length));
 
         BitConverter.TryWriteBytes(crc, CreateCRC(nameBuffer: st_name, dataBuffer: _buffer.AsSpan(from: 0, length: (i32)_buffer.Length)));
@@ -54,10 +56,7 @@ internal class PNGChunk: ICopyTo<BinaryWriter>, IDisposable {
         destination.Write(buffer: crc);
     }
 
-    public void Dispose() {
-        if (_buffer.Length > 0)
-            _buffer.Dispose();
-    }
+    public void Dispose() => _buffer.Dispose();
 
     private u32 CreateCRC(Span<u8> nameBuffer, Span<u8> dataBuffer) {
         u64 crc = 0xffffffffL;

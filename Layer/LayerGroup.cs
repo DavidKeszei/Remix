@@ -67,9 +67,9 @@ public class LayerGroup {
 	/// Create a new <see cref="Image"/> from the <see cref="Layer"/>s.
 	/// </summary>
 	/// <returns>Return a new <see cref="Image"/> instance.</returns>
-	public Task<Image> CreateImage(Action<f32> progress = null!) {		
+	public Task<Image> CreateImage(Action<f32> progress = null!, CancellationToken? token = null) {		
 		if (_layers.Count == 0) {
-			progress?.Invoke(100f);
+			progress?.Invoke(obj: 100f);
 			return Task.FromResult<Image>(result: null!);
 		}
 
@@ -79,7 +79,7 @@ public class LayerGroup {
 		CopyTo(from: _layers[0].ReferenceImage, to: image);
 
 		if (_layers.Count == 1) {
-			progress?.Invoke(100f);
+			progress?.Invoke(obj: 100f);
 			return Task.FromResult<Image>(result: image);
 		}
 
@@ -156,14 +156,22 @@ public class LayerGroup {
 						}
 					}
 
+					if (token.HasValue && token.Value.IsCancellationRequested) {
+						image.Dispose();
+						progress?.Invoke(obj: 100f);
+
+						return Task.FromCanceled<Image>(cancellationToken: token.Value);
+					}
+
+
 					image[x, y] = px;
 				}
 			}
 
-			progress?.Invoke(y / (f32)_scale.Y * 100f);
+			progress?.Invoke(obj: y / (f32)_scale.Y * 100f);
 		}
 
-		progress?.Invoke(100f);
+		progress?.Invoke(obj: 100f);
 		return Task.FromResult<Image>(result: image);
 	}
 

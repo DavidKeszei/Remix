@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Remix.Effect;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,15 +32,15 @@ public class GaussianBlur: Effect {
     public BlurDirection Direction { get => _direction; set => _direction = value; }
 
     public GaussianBlur(u32 range, f32 distribution): base(name: nameof(GaussianBlur)) {
-        this._range = range;
-        this._distribution = distribution;
+        _range = range;
+        _distribution = distribution;
     }
 
 	/// <summary>
 	/// Apply Gaussian-blur effect on the <paramref name="target"/>.
 	/// </summary>
 	/// <param name="target">Target <see cref="Image"/> of the effect.</param>
-	/// <remarks><b>Remark: </b> If the <see cref="GaussianBlur.Range"/> property is <b>even</b> number, then the method add 1 to the range. (Odd kernels is preferred).</remarks>
+	/// <remarks><b>Remark: </b> If the <see cref="Range"/> property is <b>even</b> number, then the method add 1 to the range. (Odd kernels is preferred).</remarks>
 	public override Task Apply(Image target) {
         unsafe {
             /* 1. Create simple kernel. */
@@ -67,7 +68,7 @@ public class GaussianBlur: Effect {
                 CopyToImage(tempImage, target);
             }
         }
-
+        
         return Task.CompletedTask;
     }
 
@@ -95,7 +96,7 @@ public class GaussianBlur: Effect {
                             if (kernelIndex < 0) current = image[(u32)(xCaptureRef + workerCaptureIndex), (u32)(kernelIndex + kernelInHalf)];
                             else if(kernelIndex > image.Scale.Y - 1) {
 
-                                u32 mirror = (u32)(image.Scale.Y - (kernelIndex % (image.Scale.Y - 1)));
+                                u32 mirror = (u32)(image.Scale.Y - kernelIndex % (image.Scale.Y - 1));
                                 current = image[(u32)(xCaptureRef + workerCaptureIndex), mirror];
                             }
                             else {
@@ -146,7 +147,7 @@ public class GaussianBlur: Effect {
                             if (kernelIndex < 0) current = image[(u32)(kernelIndex + kernelInHalf), (u32)(yCaptureRef + workerCaptureIndex)];
                             else if(kernelIndex > image.Scale.X - 1) {
 
-                                u32 mirror = (u32)(image.Scale.X - (kernelIndex % (image.Scale.X - 1)));
+                                u32 mirror = (u32)(image.Scale.X - kernelIndex % (image.Scale.X - 1));
                                 current = image[mirror, (u32)(yCaptureRef + workerCaptureIndex)];
                             }
                             else {

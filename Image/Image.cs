@@ -97,7 +97,7 @@ public class Image: IDisposable {
 		if (!_disposedValue) {
 			if (disposing)
 				_bitDepth = 0;
-
+				
 			_buffer.Dispose();
 			_disposedValue = true;
 		}

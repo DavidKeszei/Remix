@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Remix.Effect;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -33,7 +34,7 @@ public class Bloom: Effect {
 		if (range == 0)
 			throw new ArgumentException(message: $"[{base.Name}] The bloom range must be more than 0.");
 
-		this._range = range;
+		_range = range;
 	}
 
 	public override async Task Apply(Image target) {
@@ -59,16 +60,13 @@ public class Bloom: Effect {
 				ref RGBA blurRGBA = ref target[x, y];
 
 				/* Check the each pixel in the blurred image is is brighter than the original pixel in the same position. */
-				if (blurRGBA.R > tempRGBA.R)
-					blurRGBA.R = (u8)f32.Clamp((tempRGBA.R * pxStrength) + (blurRGBA.R * _strength), 0, u8.MaxValue);
+				if (blurRGBA.R > tempRGBA.R) blurRGBA.R = (u8)f32.Clamp(tempRGBA.R * pxStrength + blurRGBA.R * _strength, 0, u8.MaxValue);
 				else blurRGBA.R = tempRGBA.R;
 
-				if (blurRGBA.G > tempRGBA.G)
-					blurRGBA.G = (u8)f32.Clamp((tempRGBA.G * pxStrength) + (blurRGBA.G * _strength), 0, u8.MaxValue);
+				if (blurRGBA.G > tempRGBA.G) blurRGBA.G = (u8)f32.Clamp(tempRGBA.G * pxStrength + blurRGBA.G * _strength, 0, u8.MaxValue);
 				else blurRGBA.G = tempRGBA.G;
 
-				if (blurRGBA.B > tempRGBA.B)
-					blurRGBA.B = (u8)f32.Clamp((tempRGBA.B * pxStrength) + (blurRGBA.B * _strength), 0, u8.MaxValue);
+				if (blurRGBA.B > tempRGBA.B) blurRGBA.B = (u8)f32.Clamp(tempRGBA.B * pxStrength + blurRGBA.B * _strength, 0, u8.MaxValue);
 				else blurRGBA.B = tempRGBA.B;
 			}
 		}

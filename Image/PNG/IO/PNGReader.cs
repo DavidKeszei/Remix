@@ -12,7 +12,7 @@ namespace Remix.IO;
 /// <summary>
 /// Reads primitive entries and color values from a <see cref="PNG"/> image.
 /// </summary>
-internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
+internal sealed class PNGReader: IDisposable, IImageReader<PNG> {
     private readonly static u8[] MAGIC_NUMBERS = new u8[8] {
         0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
     };
@@ -24,7 +24,7 @@ internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
         { PNGColorMode.INDEXED, 1 },
     };
 
-    private readonly PNGFilter _decoder = null!;
+    private PNGFilter _decoder = null!;
     private BinaryReader _source = null!;
 
     /// <summary>
@@ -50,7 +50,7 @@ internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
 
         CopyIDATsBuffer(FirstIDAT, encoded);
 
-        using(UnmanagedMemoryStream ustream = encoded.AsStream(access: FileAccess.Read))
+        using (UnmanagedMemoryStream ustream = encoded.AsStream(access: FileAccess.Read))
         using (ZLibStream zip = new ZLibStream(stream: ustream, mode: CompressionMode.Decompress)) {
             i32 element = -1;
             u64 index = 0;
@@ -64,6 +64,8 @@ internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
 
         (u32 X, u32 Y) coordinate = (0, 0);
         PNGFilterType currentFilter = (PNGFilterType)decoded[0];
+
+        /* Unfiltering the image buffers to RGBA buffer */
 
         for (u64 i = 1; i < decoded.Length; i += channelCount) {
             if (i % lineLength == 0) {
@@ -128,6 +130,9 @@ internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
             ++coordinate.X;
         }
 
+        if (target.ColorMode == PNGColorMode.INDEXED)
+            ConvertToRGBA(target);
+
         return Task.CompletedTask;
     }
 
@@ -137,7 +142,9 @@ internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
     /// <returns>Return <see langword="true"/> if the file is a <see cref="PNG"/> image. Otherwise return <see langword="false"/>.</returns>
     public bool IsPNG() {
         Span<u8> buffer = stackalloc u8[8];
-        _source.Read(buffer: buffer);
+
+        _ = _source.BaseStream.Seek(offset: 0, origin: SeekOrigin.Begin);
+        _ = _source.Read(buffer: buffer);
 
         return buffer.SequenceEqual(other: MAGIC_NUMBERS);
     }
@@ -154,29 +161,29 @@ internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
 
         switch (name) {
             case PNGHeaderEntry.Scale_X:
-                _source.Read(stackBuff);
+                _ = _source.Read(stackBuff);
 
                 stackBuff.Reverse();
-                return Unsafe.BitCast<u32, T>(BitConverter.ToUInt32(stackBuff));
+                return Unsafe.BitCast<u32, T>(source: BitConverter.ToUInt32(stackBuff));
 
             case PNGHeaderEntry.Scale_Y:
-                _source.BaseStream.Seek(offset: 4, origin: SeekOrigin.Current);
-                _source.Read(stackBuff);
+                _ = _source.BaseStream.Seek(offset: 4, origin: SeekOrigin.Current);
+                _ = _source.Read(buffer: stackBuff);
 
                 stackBuff.Reverse();
-                return Unsafe.BitCast<u32, T>(BitConverter.ToUInt32(stackBuff));
+                return Unsafe.BitCast<u32, T>(source: BitConverter.ToUInt32(stackBuff));
 
             case PNGHeaderEntry.Depth:
-                _source.BaseStream.Seek(offset: 8, origin: SeekOrigin.Current);
+                _ = _source.BaseStream.Seek(offset: 8, origin: SeekOrigin.Current);
 
                 u8 depth = _source.ReadByte();
-                return Unsafe.BitCast<u8, T>(depth);
+                return Unsafe.BitCast<u8, T>(source: depth);
 
             case PNGHeaderEntry.ColorMode:
-                _source.BaseStream.Seek(offset: 9, origin: SeekOrigin.Current);
+                _ = _source.BaseStream.Seek(offset: 9, origin: SeekOrigin.Current);
 
                 PNGColorMode colorMode = (PNGColorMode)_source.ReadByte();
-                return Unsafe.BitCast<PNGColorMode, T>(colorMode);
+                return Unsafe.BitCast<PNGColorMode, T>(source:colorMode);
         }
 
         return default!;
@@ -185,6 +192,60 @@ internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
     public void Dispose() => _source.Dispose();
 
     #region PRIVATE METHODS
+
+    private void ConvertToRGBA(PNG png) {
+        ReadOnlySpan<u8> plte = stackalloc u8[4] { 0x50, 0x4C, 0x54, 0x45 };
+        ReadOnlySpan<u8> idat = stackalloc u8[4] { 0x49, 0x44, 0x41, 0x54 };
+
+        Span<u8> name = stackalloc u8[4] { 0, 0, 0, 0 };
+        Span<u8> len = stackalloc u8[4] { 0, 0, 0, 0 };
+
+        Span<RGBA> palette = stackalloc RGBA[256];
+        Span<u8> paletteBuff = stackalloc u8[256];
+
+        paletteBuff.Clear();
+
+        _source.BaseStream.Seek(offset: 33, origin: SeekOrigin.Begin);
+
+        while(true) {
+            _ = _source.Read(buffer: len);
+            _ = _source.Read(buffer: name);
+
+            if (name.SequenceEqual<u8>(other: idat))
+                throw new FileLoadException(message: "The PNG must be contains a palette (PLTE chunk) in the file before the image buffer.");
+
+            if (name.SequenceEqual<u8>(other: plte)) {
+                if (BitConverter.IsLittleEndian)
+                    len.Reverse<u8>();
+
+                u32 cLen = BitConverter.ToUInt32(value: len);
+
+                if(cLen % 3 != 0)
+                    throw new FileLoadException(message: "The palette of the image can't read, because the entry count is can't divede by 3.");
+
+                _ = _source.Read(buffer: paletteBuff[..(i32)cLen]);
+
+                for (i32 i = 0; i < cLen; i += 3) {
+                    ref RGBA color = ref palette[i % 2];
+
+                    color.R = paletteBuff[i];
+                    color.G = paletteBuff[i + 1];
+                    color.B = paletteBuff[i + 2];
+                    color.A = 255;
+                }
+            }
+
+            break;
+        }
+
+        for (u32 y = 0; y < png.Scale.Y; ++y) {
+            for (u32 x = 0; x < png.Scale.X; ++x) {
+                ref RGBA px = ref png[x, y];
+                ref RGBA paletteColor = ref palette[px.R];
+                png[x, y] = paletteColor;
+            }
+        }
+    }
 
     private (u64 FirstIDATChunk, u64 Length) DetectIDATs() {
         _source.BaseStream.Seek(offset: 33, origin: SeekOrigin.Begin);
@@ -196,20 +257,20 @@ internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
         u64 allLength = 0;
 
         while (_source.BaseStream.Length > _source.BaseStream.Position) {
-            _source.Read(length);
-            _source.Read(name);
+            _ = _source.Read(length);
+            _ = _source.Read(name);
 
             length.Reverse();
             u32 len = BitConverter.ToUInt32(value: length);
 
-            if ("IDAT".SequenceEqual(Encoding.Latin1.GetString(bytes: name))) {
+            if ("IDAT".SequenceEqual(second: Encoding.Latin1.GetString(bytes: name))) {
                 if (first == 0)
                     first = (u64)_source.BaseStream.Position - 8;
 
                 allLength += len;
             }
 
-            _source.BaseStream.Seek((i64)len + 4, SeekOrigin.Current);
+            _ = _source.BaseStream.Seek((i64)len + 4, SeekOrigin.Current);
         }
 
         return (first, allLength);
@@ -225,14 +286,14 @@ internal sealed class PNGReader : IDisposable, IImageReader<PNG> {
         _source.BaseStream.Seek(offset: (i64)start, origin: SeekOrigin.Begin);
 
         do {
-            _source.Read(length);
-            _source.Read(name);
+            _ = _source.Read(length);
+            _ = _source.Read(name);
 
             length.Reverse();
             i32 idatLen = BitConverter.ToInt32(length);
 
-            _source.Read(buffer: destination.AsSpan(bufferPosition, idatLen));
-            _source.BaseStream.Seek(offset: 4, origin: SeekOrigin.Current);
+            _ = _source.Read(buffer: destination.AsSpan(bufferPosition, idatLen));
+            _ = _source.BaseStream.Seek(offset: 4, origin: SeekOrigin.Current);
 
             bufferPosition += (u64)idatLen;
 

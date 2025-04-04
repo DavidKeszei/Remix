@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Remix;
+
 internal class TextChunk: PNGChunk {
     private TextKeyword _keyword = TextKeyword.COMMENT;
     private string _lang = string.Empty;
@@ -31,14 +32,14 @@ internal class TextChunk: PNGChunk {
 
         /* Keyword as UTF8 bytes */
         if(!Encoding.UTF8.TryGetBytes(chars: Enum.GetName<TextKeyword>(_keyword), bytes: headerInfos[..80], out i32 written))
-            throw new ArgumentException(message: "The keyword of the iTXt chunk is too long.");
+            throw new ArgumentException(message: "The keyword of the iTXt chunk is too long. (Max: 4096 byte(s))");
 
         /* Compress indicator */
         headerInfos[81] = _compress ? (u8)1u : (u8)0u;
 
         /* Language of the text. (83 - 103 bytes) */
         if(_lang != string.Empty)
-            Encoding.UTF8.TryGetBytes(chars: _lang, bytes: headerInfos[83..103], out written);
+            _ = Encoding.UTF8.TryGetBytes(chars: _lang, bytes: headerInfos[83..103], out written);
 
         if(!Encoding.UTF8.TryGetBytes(chars: _text, bytes: utf8Text, out written))
             throw new ArgumentException(message: "The text of the iTXt chunk is too long. (Max: 4096 byte(s))");

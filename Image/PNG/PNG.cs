@@ -87,7 +87,7 @@ public class PNG: Image, IFile<PNG> {
     /// </summary>
     /// <param name="builderAction">Save action, which describes the save method.</param>
     public async Task Save(Action<PNGSaveBuilder> builderAction) {
-        PNGSaveBuilder builder = new PNGSaveBuilder();
+        using PNGSaveBuilder builder = new PNGSaveBuilder();
         builderAction.Invoke(obj: builder);
 
         using (PNGWriter writer = new PNGWriter(path: builder.OutputPath)) {
@@ -95,12 +95,18 @@ public class PNG: Image, IFile<PNG> {
             writer.WriteHeaderEntry<u32>(PNGHeaderEntry.Scale_Y, value: _buffer.Scale.Y);
 
             writer.WriteHeaderEntry<u8>(entry: PNGHeaderEntry.Depth, value: _bitDepth);
+
+            if (builder.TryGetChunk<PNGPalette>(out PNGPalette palette)) {
+                _colorMode = PNGColorMode.INDEXED;
+                palette.Palette.Create(image: this);
+            }
+
             writer.WriteHeaderEntry<PNGColorMode>(entry: PNGHeaderEntry.ColorMode, value: _colorMode);
 
+            builder.Build(writer, isPreBuild: true);
             await writer.WriteBuffer(from: this);
 
-            /* Write not required chunks into the file. (Example: textual data [iTXt Chunk]) */
-            builder.Build(writer);
+            builder.Build(writer, isPreBuild: false);
         }
     }
 }

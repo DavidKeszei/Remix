@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Remix.Effect;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,13 +24,13 @@ public class BoxBlur: Effect {
 	/// </summary>
 	public BlurDirection Direction { get => _direction; set => _direction = value; }
 
-	public BoxBlur(u32 range): base(name: nameof(BoxBlur)) => this._range = range;
+	public BoxBlur(u32 range): base(name: nameof(BoxBlur)) => _range = range;
 
 	/// <summary>
 	/// Apply Box-blur effect on the <paramref name="target"/>.
 	/// </summary>
 	/// <param name="target">Target <see cref="Image"/> of the effect.</param>
-	/// <remarks><b>Remark: </b> If the <see cref="BoxBlur.Range"/> property is <b>even</b> number, then the method add 1 to the range. (Odd kernels is preferred).</remarks>
+	/// <remarks><b>Remark: </b> If the <see cref="Range"/> property is <b>even</b> number, then the method add 1 to the range. (Odd kernels is preferred).</remarks>
 	public override Task Apply(Image target) {
 		unsafe {
 			/* 1. Create simple kernel. */
@@ -85,7 +86,7 @@ public class BoxBlur: Effect {
 							if (kernelIndex < 0) current = image[(u32)(xCaptureRef + workerCaptureIndex), (u32)i32.Abs(kernelIndex + kernelInHalf)];
 							else if(kernelIndex > image.Scale.Y - 1) {
 
-								u32 mirror = image.Scale.Y - (image.Scale.Y % (image.Scale.Y - 1));
+								u32 mirror = image.Scale.Y - image.Scale.Y % (image.Scale.Y - 1);
 								current = image[(u32)(xCaptureRef + workerCaptureIndex), mirror];
 							}
 							else {
@@ -135,7 +136,7 @@ public class BoxBlur: Effect {
 							if (kernelIndex < 0) current = image[(u32)i32.Abs(kernelIndex + kernelInHalf), (u32)(yCaptureRef + workerCaptureIndex)];
 							else if(kernelIndex > image.Scale.X - 1) {
 
-								u32 mirror = image.Scale.X - (image.Scale.X % (image.Scale.X - 1));
+								u32 mirror = image.Scale.X - image.Scale.X % (image.Scale.X - 1);
 								current = image[mirror, (u32)(yCaptureRef + workerCaptureIndex)];
 							}
 							else {

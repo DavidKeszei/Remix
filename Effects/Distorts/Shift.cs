@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Remix.Effect;
 
 /// <summary>
-/// Represent a simple pixel shift to vertical or horizontal direction.
+/// Represent a simple pixel shift in the vertical or horizontal direction.
 /// </summary>
 public class Shift: Effect {
 	private i32 _seed = -1;
@@ -55,14 +55,10 @@ public class Shift: Effect {
 		Random rnd = new Random(Seed: _seed == -1 ? (i32)(DateTime.Now.Ticks % i32.MaxValue) : _seed);
 		using Image img = new Image(source: target, isOwner: false);
 
-		if (_direction == ShiftDirection.VERTICAL) {
-			ShiftVertical(generator: rnd, target, img);
-		}
-		else {
-			ShiftHorizontal(generator: rnd, target, img);
-		}
+		if (_direction == ShiftDirection.VERTICAL) ShiftVertical(generator: rnd, target, img);
+        else ShiftHorizontal(generator: rnd, target, img);
 
-		return Task.CompletedTask;
+        return Task.CompletedTask;
 	}
 
 	private void ShiftHorizontal(Random generator, Image target, Image temp) {
@@ -78,27 +74,21 @@ public class Shift: Effect {
 			}
 
 			for (u32 x = 0; x < target.Scale.X; ++x) {
-				if (!isCurrentlySelected) {
+				if (!isCurrentlySelected || (x + currentShift < 0 || x + currentShift >= target.Scale.X)) {
 					target[x, y] = temp[x, y];
 					continue;
 				}
 
-				if (x + currentShift < 0) {
-					target[(u32)(target.Scale.X + ((i32)x + currentShift)), y] = (temp[x, y] * _strength) + (target[(u32)(target.Scale.X + ((i32)x + currentShift)), y] * pxStrength);
-				}
-				else if(x + currentShift >= target.Scale.X) {
-					target[(u32)((x + currentShift) % target.Scale.X), y] = (temp[x, y] * _strength) + (target[(u32)((x + currentShift) % target.Scale.X), y] * pxStrength);
-				}
-				else {
-					target[(u32)(x + currentShift), y] = (temp[x, y] * _strength) + (target[(u32)(x + currentShift), y] * pxStrength);
-				}
-			}
+                target[(u32)(x + currentShift), y] = (temp[x, y] * _strength) + (target[(u32)(x + currentShift), y] * pxStrength);
+            }
 		}
 	}
 
 	private void ShiftVertical(Random generator, Image target, Image temp) {
 		i32 currentShift = 0;
 		bool isCurrentlySelected = true;
+
+		f32 pxStrength = 1f - _strength;
 
 		for (u32 x = 0; x < target.Scale.X; x++) {
 			if (x % _lineHeight == 0) {
@@ -107,21 +97,13 @@ public class Shift: Effect {
 			}
 
 			for (u32 y = 0; y < target.Scale.Y; ++y) {
-				if (!isCurrentlySelected) {
+				if (!isCurrentlySelected || (y + currentShift < 0 || y + currentShift >= target.Scale.Y)) {
 					target[x, y] = temp[x, y];
 					continue;
 				}
 
-				if (y + currentShift < 0) {
-					target[x, (u32)(target.Scale.Y + ((i32)y + currentShift))] = temp[x, y];
-				}
-				else if(y + currentShift >= target.Scale.Y) {
-					target[x, (u32)((y + currentShift) % target.Scale.Y)] = temp[x, y];
-				}
-				else {
-					target[x, (u32)(y + currentShift)] = temp[x, y];
-				}
-			}
+                target[x, (u32)(y + currentShift)] = (temp[x, y] * _strength) + (target[x, (u32)(y + currentShift)] * pxStrength);
+            }
 		}
 	}
 }

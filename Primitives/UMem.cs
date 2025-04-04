@@ -48,11 +48,11 @@ internal unsafe struct UMem<TType> : IDisposable, IEquatable<UMem<TType>>, IInva
     /// <returns>Return a new <see cref="UMem{TType}"/> instance.</returns>
     public static UMem<TType> Create(u64 allocationLength) {
         if (allocationLength == 0)
-            return UMem<TType>.Invalid;
+            return Invalid;
         
         return new UMem<TType>(
-				source: NativeMemory.Alloc((nuint)allocationLength, elementSize: (nuint)Unsafe.SizeOf<TType>()),
-				allocationLength
+            source: NativeMemory.Alloc((nuint)allocationLength, elementSize: (nuint)Unsafe.SizeOf<TType>()),
+            allocationLength
 		);
 	}
 
@@ -62,10 +62,12 @@ internal unsafe struct UMem<TType> : IDisposable, IEquatable<UMem<TType>>, IInva
     /// <param name="allocationLength">Length of the allocation. (Not in bytes)</param>
     /// <returns>Return a new <see cref="UMem{TType}"/> instance.</returns>
     public static UMem<TType> Create(u64 allocationLength, TType @default) {
+        if (allocationLength == 0) return Invalid;
+
         UMem<TType> mem = new UMem<TType>(
-                                source: NativeMemory.Alloc((nuint)allocationLength, elementSize: (nuint)Unsafe.SizeOf<TType>()),
-                                allocationLength
-                          );
+            source: NativeMemory.Alloc((nuint)allocationLength, elementSize: (nuint)Unsafe.SizeOf<TType>()),
+            allocationLength
+        );
 
         for (u64 i = 0; i < mem._length; ++i)
             mem[i] = @default;
@@ -73,31 +75,25 @@ internal unsafe struct UMem<TType> : IDisposable, IEquatable<UMem<TType>>, IInva
         return mem;
     }
 
-    public void Clear(TType fill = default!) {
-        for(u64 i = 0; i < _length; ++i) {
-            *((TType*)_ptr + i) = fill;
-        }
-    }
-
     /// <summary>
     /// Return the current <see cref="UMem{TType}"/> instance as a <see cref="UnmanagedMemoryStream"/>.
     /// </summary>
     /// <returns>Return a new <see cref="UnmanagedMemoryStream"/> instance.</returns>
-    public UnmanagedMemoryStream AsStream(FileAccess access) => new UnmanagedMemoryStream(
-        pointer: (byte*)_ptr,
+    public readonly UnmanagedMemoryStream AsStream(FileAccess access) => new UnmanagedMemoryStream(
+        pointer: (u8*)_ptr,
         length: (i64)_length * Unsafe.SizeOf<TType>(),
         capacity: (i64)_length * Unsafe.SizeOf<TType>(),
         access: access
     );
 
-    public Span<TType> AsSpan(u64 from, i32 length) {
+    public readonly Span<TType> AsSpan(u64 from, i32 length) {
         if (from + (u32)length > _length)
             length = i32.Clamp((i32)_length - (i32)from, 0, (i32)_length);
 
         return new Span<TType>((TType*)_ptr + from, length);
     }
 
-    public bool Equals(UMem<TType> other)
+    public readonly bool Equals(UMem<TType> other)
         => other.Length == this._length && other._ptr == this._ptr;
 
     public void Dispose() {
