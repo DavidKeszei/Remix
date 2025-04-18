@@ -76,7 +76,7 @@ public class PNG: Image, IFile<PNG> {
             writer.WriteHeaderEntry<u32>(PNGHeaderEntry.Scale_Y, value: _buffer.Scale.Y);
 
             writer.WriteHeaderEntry<u8>(entry: PNGHeaderEntry.Depth, value: _bitDepth);
-            writer.WriteHeaderEntry<PNGColorMode>(entry: PNGHeaderEntry.ColorMode, value: _colorMode);
+            writer.WriteHeaderEntry<PNGColorMode>(entry: PNGHeaderEntry.ColorMode, value: PNGColorMode.TRUECOLOR_WITH_ALPHA);
 
             await writer.WriteBuffer(from: this);
         }

@@ -51,21 +51,23 @@ public readonly struct Palette {
     /// <param name="image">Source image.</param>
     public void Create(Image image) {
         Span<(i32 min, i32 max)> buckets = stackalloc (i32 min, i32 max)[_count];
-        RGBA[] arr = ArrayPool<RGBA>.Shared.Rent((i32)(image.Scale.X * image.Scale.Y));
+        using UMem<RGBA> arr = UMem<RGBA>.Create(allocationLength: image.Scale.X * image.Scale.Y);
 
-        buckets[0] = (0, arr.Length);
-        CopyTo(image, arr);
+        buckets[0] = (0, (i32)arr.Length);
+        CopyTo(image, in arr);
 
         i32 bucketCount = 1;
         i32 pow = 1;
 
         while (bucketCount <= _count) {
-            i32 unit = arr.Length / bucketCount;
+            i32 unit = (i32)arr.Length / bucketCount;
 
             for (i32 i = 0; i < bucketCount; ++i) {
                 buckets[i] = (unit * i, unit * (i + 1));
 
-                Span<RGBA> bucket = arr.AsSpan<RGBA>().Slice(start: buckets[i].min, length: buckets[i].max - buckets[i].min);
+                Span<RGBA> bucket = arr.AsSpan(from: 0, length: (i32)arr.Length)
+                                       .Slice(start: buckets[i].min, length: buckets[i].max - buckets[i].min);
+
                 char channel = GetLargestChannel(bucket);
 
                 switch (channel) {
@@ -106,16 +108,14 @@ public readonly struct Palette {
         for (i32 i = 0; i < _count; ++i) {
             (i32 r, i32 g, i32 b) = (0, 0, 0);
 
-            for (i32 j = buckets[i].min; j < buckets[i].max; ++j) {
+            for (u32 j = (u32)buckets[i].min; j < buckets[i].max; ++j) {
                 r += arr[j].R;
                 g += arr[j].G;
                 b += arr[j].B;
             }
 
-            _colors[i] = new RGBA((u8)(r / (arr.Length / _count)), (u8)(g / (arr.Length / _count)), (u8)(b / (arr.Length / _count)));
+            _colors[i] = new RGBA((u8)(r / ((i32)arr.Length / _count)), (u8)(g / ((i32)arr.Length / _count)), (u8)(b / ((i32)arr.Length / _count)));
         }
-
-        ArrayPool<RGBA>.Shared.Return(arr, clearArray: true);
     }
 
     private char GetLargestChannel(ReadOnlySpan<RGBA> bucket) {
@@ -128,7 +128,7 @@ public readonly struct Palette {
         else return 'b';
     }
 
-    private void CopyTo(Image image, RGBA[] to) {
+    private void CopyTo(Image image, in UMem<RGBA> to) {
         for (u32 y = 0; y < image.Scale.Y; ++y)
             for (u32 x = 0; x < image.Scale.X; ++x)
                 to[x + (y * image.Scale.X)] = image[x, y];

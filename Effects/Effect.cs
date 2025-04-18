@@ -22,7 +22,7 @@ public abstract class Effect: IEffect {
     /// <summary>
     /// Strength of the effect on the <see cref="Image"/>.
     /// </summary>
-    /// <remarks><b>Remark</b>: This property is can't be applied to the <see cref="BlurEffect"/> instances.</remarks>
+    /// <remarks><b>Remark</b>: This property is can't be applied to the inverse effect.</remarks>
     public float Strength { get => _strength; set => _strength = value; }
 
     protected Effect(string name) => this._name = name;

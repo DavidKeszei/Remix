@@ -219,7 +219,7 @@ public static class TransformExtension {
 
 	private static void BilinearX(Image old, UMem2D<RGBA> destination) {
 		f32 ratio = old.Scale.X == 1 ? 1 :
-					old.Scale.X <= 2 ? destination.Scale.X - 1 : 
+					old.Scale.X == 2 ? destination.Scale.X - 1 : 
 						(destination.Scale.X - 1) / (f32)old.Scale.X;
 
 		u32 workerCount = (u32)_workers.Length;
@@ -236,10 +236,10 @@ public static class TransformExtension {
 					f32 barrierBefore = .0f;
 
 					RGBA from = old[0, yRef + wRef];
-					RGBA to = old.Scale.X == 1 ? old[0, yRef + wRef] : old[1, yRef + wRef];
+					RGBA to = old.Scale.X == 1 ? from : old[1, yRef + wRef];
 
 					for (u32 x = 0; x < destination.Scale.X; ++x) {
-						if (x >= barrier && barrier / ratio < old.Scale.X - 1) {
+						if (x >= barrier && (barrier / ratio) < old.Scale.X - 1) {
 
 							barrierBefore = barrier;
 							barrier += ratio;
@@ -260,7 +260,7 @@ public static class TransformExtension {
 
 	private static void BilinearY(UMem2D<RGBA> old, UMem2D<RGBA> destination) {
 		f32 ratio = old.Scale.Y == 1 ? 1 :
-						old.Scale.Y <= 2 ? destination.Scale.Y - 1 :
+						old.Scale.Y == 2 ? destination.Scale.Y - 1 :
 										   (destination.Scale.Y - 1) / (f32)old.Scale.Y;
 
 		u32 workerCount = (u32)_workers.Length;

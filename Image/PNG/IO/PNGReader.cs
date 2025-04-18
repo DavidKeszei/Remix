@@ -65,8 +65,6 @@ internal sealed class PNGReader: IDisposable, IImageReader<PNG> {
         (u32 X, u32 Y) coordinate = (0, 0);
         PNGFilterType currentFilter = (PNGFilterType)decoded[0];
 
-        /* Unfiltering the image buffers to RGBA buffer */
-
         for (u64 i = 1; i < decoded.Length; i += channelCount) {
             if (i % lineLength == 0) {
                 currentFilter = (PNGFilterType)decoded[i];
@@ -226,7 +224,7 @@ internal sealed class PNGReader: IDisposable, IImageReader<PNG> {
                 _ = _source.Read(buffer: paletteBuff[..(i32)cLen]);
 
                 for (i32 i = 0; i < cLen; i += 3) {
-                    ref RGBA color = ref palette[i % 2];
+                    ref RGBA color = ref palette[i / 3];
 
                     color.R = paletteBuff[i];
                     color.G = paletteBuff[i + 1];

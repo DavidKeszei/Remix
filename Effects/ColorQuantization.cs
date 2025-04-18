@@ -10,6 +10,8 @@ namespace Remix.Effect;
 /// Represent a color quantization effect on an <see cref="Image"/>.
 /// </summary>
 public sealed class ColorQuantization: Effect {
+    private static Task[] _workers = null!;
+
     private Palette _palette = default!;
     private bool _isPreGenerated = true;
 
@@ -17,6 +19,9 @@ public sealed class ColorQuantization: Effect {
     /// Underlying palette of the effect.
     /// </summary>
     public Palette Palette { get => _palette; set => _palette = value; }
+
+    static ColorQuantization()
+        => _workers = new Task[Environment.ProcessorCount];
 
     /// <summary>
     /// Create new <see cref="ColorQuantization"/> effect from a <paramref name="palette"/>.
@@ -36,31 +41,43 @@ public sealed class ColorQuantization: Effect {
         this._isPreGenerated = false;
     }
 
-    public override Task Apply(Image target) {
-        if (_strength <= 0) return Task.CompletedTask;
+    public override async Task Apply(Image target) {
+        if (_strength <= 0) return;
         if (!_isPreGenerated) _palette.Create(image: target);
 
         f32 pxStrength = 1f - base._strength;
+        u32 rowCount = target.Scale.Y < Environment.ProcessorCount ? target.Scale.Y : (u32)Environment.ProcessorCount;
 
-        for (u32 y = 0; y < target.Scale.Y; ++y) {
-            for(u32 x = 0; x < target.Scale.X; ++x) {
-                f32 smallest = _palette[0].EuclidianDistance(target[x, y]);
-                i32 color = 0;
+        for (u32 y = 0; y < target.Scale.Y; y += rowCount) {
+            u32 yRef = y;
+            rowCount = target.Scale.Y - y < Environment.ProcessorCount ? target.Scale.Y - y : (u32)Environment.ProcessorCount;
 
-                for (i32 i = 1; i < _palette.Count; ++i) {
-                    f32 current = _palette[i].EuclidianDistance(target[x, y]);
+            for (u32 w = 0; w < rowCount; ++w) {
+                u32 wRef = w;
+                _workers[w] = Task.Run(action: () => {
 
-                    if (current < smallest) {
-                        smallest = current;
-                        color = i;
+                    for (u32 x = 0; x < target.Scale.X; ++x) {
+                        f32 smallest = _palette[0].EuclidianDistance(target[x, yRef + wRef]);
+                        i32 color = 0;
+
+                        for (i32 i = 1; i < _palette.Count; ++i) {
+                            f32 current = _palette[i].EuclidianDistance(target[x, yRef + wRef]);
+
+                            if (current < smallest) {
+                                smallest = current;
+                                color = i;
+                            }
+                        }
+
+                        RGBA paletteColor = _palette[color];
+                        target[x, yRef + wRef] = target[x, yRef + wRef] * pxStrength + paletteColor * _strength;
                     }
-                }
-
-                RGBA paletteColor = _palette[color];
-                target[x, y] = target[x, y] * pxStrength + paletteColor * _strength;
+                });
             }
+
+            await Task.WhenAll(tasks: _workers);
         }
 
-        return Task.CompletedTask;
+        return;
     }
 }

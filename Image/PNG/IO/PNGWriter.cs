@@ -5,6 +5,9 @@ using Remix.Helpers;
 namespace Remix.IO;
 
 internal class PNGWriter: IDisposable, IImageWriter<PNG> {
+    private static Task[] _workers = new Task[Environment.ProcessorCount];
+    private static object _lock = new object();
+
     private readonly static u8[] MAGIC_NUMBERS = new u8[8] {
         0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
     };
@@ -52,9 +55,9 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
         }
     }
 
-    public Task WriteBuffer(PNG from) {
+    public async Task WriteBuffer(PNG from) {
         if (from.ColorMode == PNGColorMode.INDEXED)
-            ConvertToIndexed(from);
+            await ConvertToIndexed(from);
 
         using UMem<u8> filtered = CreateFilteredBuffer(from);
         using UMem<u8> zipped = UMem<u8>.Create(allocationLength: (u64)(filtered.Length * 1.75f + 6), @default: 0);
@@ -80,8 +83,6 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
 
         using PNGChunk IDAT_Container = new PNGChunk(name: "IDAT", buffer: zipped.AsSpan(0, (i32)written));
         IDAT_Container.CopyTo(destination: _writer);
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -175,23 +176,39 @@ internal class PNGWriter: IDisposable, IImageWriter<PNG> {
         return buffer;
     }
 
-    private void ConvertToIndexed(PNG from) {
-        for (u32 y = 0; y < from.Scale.Y; ++y) {
-            for (u32 x = 0; x < from.Scale.X; ++x) {
-                f32 distance = from[x, y].EuclidianDistance(to: _palette.Palette[0]);
-                i32 closest = 0;
+    private async Task ConvertToIndexed(PNG from) {
+        u32 rowCount = from.Scale.Y < Environment.ProcessorCount ? from.Scale.Y : (u32)Environment.ProcessorCount;
 
-                for (u16 i = 1; i < _palette.Palette.Count; ++i) {
-                    f32 currentDistance = from[x, y].EuclidianDistance(to: _palette.Palette[i]);
+        for (u32 y = 0; y < from.Scale.Y; y += rowCount) {
+            u32 yRef = y;
+            rowCount = from.Scale.Y - y < Environment.ProcessorCount ? from.Scale.Y - y : (u32)Environment.ProcessorCount;
 
-                    if (currentDistance < distance) {
-                        distance = currentDistance;
-                        closest = i;
-                    }
+            for (u32 w = 0; w < rowCount; ++w) {
+                u32 wRef = w;
+
+                lock (_lock) {
+                    _workers[w] = Task.Run(action: () => {
+
+                        for (u32 x = 0; x < from.Scale.X; ++x) {
+                            f32 smallest = _palette.Palette[0].EuclidianDistance(from[x, yRef + wRef]);
+                            i32 color = 0;
+
+                            for (i32 i = 1; i < _palette.Palette.Count; ++i) {
+                                f32 current = _palette.Palette[i].EuclidianDistance(from[x, yRef + wRef]);
+
+                                if (current < smallest) {
+                                    smallest = current;
+                                    color = i;
+                                }
+                            }
+
+                            from[x, yRef + wRef].R = (u8)color;
+                        }
+                    });
                 }
-
-                from[x, y].R = (u8)closest;
             }
+
+            await Task.WhenAll(tasks: _workers);
         }
     }
 }
