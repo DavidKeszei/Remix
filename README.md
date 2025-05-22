@@ -4,7 +4,10 @@ Little __.NET__ library for manipulate/process __PNG__, __JPEG__ & other images 
 If you like the project, then drop a start to the project. <3
 
 # Required technology
-- .NET 8 >=
+- .NET8 or later
+
+# Currently suported image types:
+- PNG
 
 # Installation
 Go to the release page & download the __.dll__ file of the library. (NUGET version __not exists__ yet from the library)
