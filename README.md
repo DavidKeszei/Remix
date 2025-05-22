@@ -6,7 +6,7 @@ If you like the project, then drop a start to the project. <3
 # Required technology
 - .NET8 or later
 
-# Currently suported image types:
+# Currently supported image types:
 - PNG
 
 # Installation
